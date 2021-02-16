@@ -1,24 +1,22 @@
+const PassThroughStream = require('stream').PassThrough
 const csv = require('csv-parser');
-const fs = require('fs');
+const https = require("https");
 
-const path = '/home/ttn/Documents/NODE/first/resources/data.csv';
+const path = 'https://raw.githubusercontent.com/vamstar/challenge/master/Dataset3.csv';
 
-logFileStats(path)
+https.get(path, response => {
+    logFileStats(response.pipe(new PassThroughStream()))
+});
 
-function getFileSize(path){
-    return fs.statSync(path).size
-}
-
-function logFileStats(path){
-    let fileSize = getFileSize(path)
-    if(!fileSize){
-        return
-    }
-
+function logFileStats(fileStream){
     let columns = []
-    let count = 0
+    let count = 0;
+    let totalSize = 0
 
-    fs.createReadStream(path)
+        fileStream
+        .on('data', (data)=>{
+            totalSize+=data.length
+        })
         .pipe(csv({separator: ';'}))
         .on('headers', (headers) => {
             columns = headers;
@@ -27,7 +25,7 @@ function logFileStats(path){
             count++;
         })
         .on('end', () => {
-            console.log("File size:", fileSize, "Bytes");
+            console.log("File size:", totalSize, "Bytes");
             console.log("Columns in the file:", columns);
             console.log("Number of rows in the file:", count);
         });
